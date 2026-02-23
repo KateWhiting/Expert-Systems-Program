@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Career Expert System</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+        .app-container { background: white; width: 100%; max-width: 800px; padding: 30px; border-radius: 15px; shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        h1 { color: #1a73e8; text-align: center; }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; }
+        label { font-weight: bold; display: block; margin-bottom: 8px; }
+        input, select { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1em; }
+        button:hover { background: #1557b0; }
+        .results { margin-top: 30px; }
+        .pos-card { padding: 15px; margin-bottom: 15px; border-radius: 8px; border-left: 8px solid; }
+        .qualified { background: #e6f4ea; border-color: #34a853; color: #137333; }
+        .disqualified { background: #fce8e6; border-color: #ea4335; color: #c5221f; }
+        .error-msg { color: #ea4335; font-size: 0.9em; font-weight: bold; margin-bottom: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>Applicant Expert System</h1>
+    <p style="text-align:center">Please enter your credentials exactly as requested.</p>
+
+    <div class="section">
+        <label>Highest Degree Earned (Enter: "Bachelor in CS", "Masters in CS", or "None"):</label>
+        <div id="degree-error" class="error-msg">Error: Please enter the full degree title (e.g., "Bachelor in CS").</div>
+        <input type="text" id="degree" placeholder="e.g. Bachelor in CS">
+
+        <label>Years of Python Development:</label>
+        <input type="number" id="py_years" value="0">
+
+        <label>Years of Data Development/Architecture:</label>
+        <input type="number" id="data_years" value="0">
+
+        <label>Years Managing Software Projects:</label>
+        <input type="number" id="pm_years" value="0">
+
+        <label>Years Experience in Agile Projects:</label>
+        <input type="number" id="agile_years" value="0">
+        
+        <label>Coursework/Skills (Check all that apply):</label>
+        <input type="checkbox" id="sw_eng_course"> Software Engineering Coursework<br>
+        <input type="checkbox" id="py_course"> Python Coursework<br>
+        <input type="checkbox" id="agile_course"> Agile Course<br>
+        <input type="checkbox" id="git_exp"> Git Experience<br>
+        <input type="checkbox" id="pmi_cert"> PMI Lean Project Management Cert<br>
+        <input type="checkbox" id="expert_sys"> Experience developing Expert Systems
+    </div>
+
+    <button onclick="runExpertSystem()">Evaluate My Application</button>
+
+    <div id="output" class="results"></div>
+</div>
+
+<script>
+function runExpertSystem() {
+    // 1. INPUT & VALIDATION
+    const degreeInput = document.getElementById('degree').value.trim();
+    const errorDiv = document.getElementById('degree-error');
+    
+    // Check for "BS" or "MS" shorthand
+    if (degreeInput.toUpperCase() === "BS" || degreeInput.toUpperCase() === "MS") {
+        errorDiv.style.display = "block";
+        return; 
+    } else {
+        errorDiv.style.display = "none";
+    }
+
+    const data = {
+        degree: degreeInput,
+        pyYears: parseInt(document.getElementById('py_years').value),
+        dataYears: parseInt(document.getElementById('data_years').value),
+        pmYears: parseInt(document.getElementById('pm_years').value),
+        agileYears: parseInt(document.getElementById('agile_years').value),
+        hasSwEng: document.getElementById('sw_eng_course').checked,
+        hasPyCourse: document.getElementById('py_course').checked,
+        hasAgileCourse: document.getElementById('agile_course').checked,
+        hasGit: document.getElementById('git_exp').checked,
+        hasPmi: document.getElementById('pmi_cert').checked,
+        hasExpSys: document.getElementById('expert_sys').checked
+    };
+
+    // 2. INFERENCE ENGINE (Rules)
+    const positions = [
+        {
+            name: "Entry-Level Python Engineer",
+            check: (d) => {
+                let reasons = [];
+                if (!d.hasPyCourse) reasons.push("Missing Python course work");
+                if (!d.hasSwEng) reasons.push("Missing Software Engineering course work");
+                if (d.degree !== "Bachelor in CS") reasons.push("Requires Bachelor in CS");
+                return reasons;
+            }
+        },
+        {
+            name: "Python Engineer",
+            check: (d) => {
+                let reasons = [];
+                if (d.pyYears < 3) reasons.push("Requires 3 years Python development");
+                if (d.dataYears < 1) reasons.push("Requires 1 year data development");
+                if (d.agileYears < 1) reasons.push("Requires 1 year experience in Agile");
+                if (d.degree !== "Bachelor in CS") reasons.push("Requires Bachelor in CS");
+                return reasons;
+            }
+        },
+        {
+            name: "Project Manager",
+            check: (d) => {
+                let reasons = [];
+                if (d.pmYears < 3) reasons.push("Requires 3 years managing software projects");
+                if (d.agileYears < 2) reasons.push("Requires 2 years experience in Agile projects");
+                return reasons;
+            }
+        },
+        {
+            name: "Senior Knowledge Engineer",
+            check: (d) => {
+                let reasons = [];
+                if (d.pyYears < 4) reasons.push("Requires 4 years Python development");
+                if (d.hasExpSys === false && d.pyYears < 6) reasons.push("Requires 2 years developing Expert Systems");
+                if (d.dataYears < 2) reasons.push("Requires 2 years data architecture/development");
+                if (d.degree !== "Masters in CS") reasons.push("Requires Masters in CS");
+                return reasons;
+            }
+        }
+    ];
+
+    // 3. OUTPUT GENERATION
+    let html = "<h2>Expert Conclusion:</h2>";
+    positions.forEach(pos => {
+        const issues = pos.check(data);
+        if (issues.length === 0) {
+            html += `<div class="pos-card qualified"><strong>Qualified: ${pos.name}</strong><br>Status: All criteria met.</div>`;
+        } else {
+            html += `<div class="pos-card disqualified"><strong>Not Qualified: ${pos.name}</strong><br>Reasons: ${issues.join("; ")}</div>`;
+        }
+    });
+
+    document.getElementById('output').innerHTML = html;
+}
+</script>
+</body>
+</html>
